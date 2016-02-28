@@ -23,7 +23,7 @@ double appliedY() const{ return m_appliedForceY; }
    Member Class
 **************** */
 
-Member::m_nextId = 1;
+Member::m_nextId = 0;
 
 Member::Member(Joint* left, Joint* right):
 leftParent(left), 
