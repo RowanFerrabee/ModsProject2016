@@ -58,7 +58,7 @@ void calculateForces(vector<Members*> members, vector<Joint*> joints) {
 
 		for (int j=0; j<curJoint->numMembers; j++) {
 			Joint* otherJoint = curJoint->members[j].leftJoint() == this ? members[j].rightJoint() : members[j].leftjoint();
-			double angle = atan2(end.getY() - start.getY(), end.getX() - start.getX());
+			double angle = atan2(otherJoint.getY() - curJoint.getY(), otherJoint.getX() - curJoint.getX());
 			forceMatrix.setElement(2*i, curJoint->member[j].id(), cos(angle));
 			forceMatrix.setElement(2*i+1, curJoint->member[j].id(), sin(angle));
 		}
@@ -68,7 +68,7 @@ void calculateForces(vector<Members*> members, vector<Joint*> joints) {
 
 	forceMatrix = forceMatrix.rref();
 	for (int i=0; i<members.size(); i++) {
-		members.at(i)->force = froceMatrix.getElement(i, members.size());
+		members.at(i)->force = forceMatrix.getElement(i, members.size());
 	}
 }
 
