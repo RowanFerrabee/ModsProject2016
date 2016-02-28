@@ -51,8 +51,11 @@ int main() {
 }
 
 void calculateForces(vector<Members*> members, vector<Joint*> joints) {
-	Matrix forceMatrix(joints.size() * 2, members.size() + 1);
+	if(joints.size()*2 < members.size() + 1) {
+		std::cout << "Bridge makes no sense, force calculations make no sense." << std::endl;
+	}
 
+	Matrix forceMatrix(joints.size() * 2, members.size() + 1);
 	for (int i=0; i<joints.size(); i++) {
 		Joint* curJoint = joints.at(i);
 
