@@ -7,16 +7,47 @@
 	
 */
 
-int main() {
-	vector<Joint> joints;
-	vector<Joint> movableJoints;
-	joints.push(0,0.05);
-	joints.push(0,0.3);
-	joints.push(0,0);
-}
 
-double angle(Joint* start, Joint* end) {
-	return atan2(end.getY() - start.getY(), end.getX() - start.getX());
+
+int main() {
+	vector<Joint*> joints;
+	vector<Joint*> movableJoints;
+	vector<Member*> members;
+
+	cout << "Point 0: (0,0.05)" << endl;
+	cout << "Point 1: (0,0.0)" << endl;
+	cout << "Point 2: (0,0.3)" << endl;
+	joints.push(new Joint(0,0.05));
+	joints.push(new Joint(0,0.3));
+	joints.push(new Joint(0,0));
+
+	double x, y;
+	int counter = 3;
+	cout << "Insert Points Now" << endl;
+	do {
+		cout << "Point " << couter << ": ";
+		cin >> x >> y;
+		if (x > 0) {
+			points.push(x,y);
+		}
+		counter++;
+	} while (x > 0);
+
+	int joint1, joint2;
+	cout << "Insert Pair of joints to draw members" << endl;
+	do {
+		cin >> joint1 >> joint2;
+		if (joint1 > 0 && joint2 > 0 && joint1 < joints.size() && joint2 < joints.size()) {
+			members.push(new Member(joints[joint1], joints[joint2]));
+		}
+	} while (joint1 > 0 && joint2 > 0);
+
+	calculateForces(members, joints);
+
+	for (int i=0; i<members.size(); i++) {
+		cout << "Member " << members[i]->id() << " has force: " << members[i].force << endl;
+	}
+
 }
 
 void calculateForces(vector<Members*> members, vector<Joint*> joints) {
@@ -27,9 +58,9 @@ void calculateForces(vector<Members*> members, vector<Joint*> joints) {
 
 		for (int j=0; j<curJoint->numMembers; j++) {
 			Joint* otherJoint = curJoint->members[j].leftJoint() == this ? members[j].rightJoint() : members[j].leftjoint();
-			double angle = angle(curJoint, otherJoint);
-			forceMatrix.setElement(2*i, curJoint->member[j].id, cos(angle));
-			forceMatrix.setElement(2*i+1, curJoint->member[j].id, sin(angle));
+			double angle = atan2(otherJoint.getY() - curJoint.getY(), otherJoint.getX() - curJoint.getX());
+			forceMatrix.setElement(2*i, curJoint->member[j].id(), cos(angle));
+			forceMatrix.setElement(2*i+1, curJoint->member[j].id(), sin(angle));
 		}
 		forceMatrix.setElement(2*i, member.size(), curJoint->appliedX);
 		forceMatrix.setElement(2*i+1, member.size(), curJoint->appliedY);
@@ -37,7 +68,7 @@ void calculateForces(vector<Members*> members, vector<Joint*> joints) {
 
 	forceMatrix = forceMatrix.rref();
 	for (int i=0; i<members.size(); i++) {
-		members.at(i)->force = froceMatrix.getElement(i, members.size());
+		members.at(i)->force = forceMatrix.getElement(i, members.size());
 	}
 }
 
