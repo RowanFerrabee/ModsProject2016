@@ -16,14 +16,14 @@ void Joint::setAppliedForce(double x, double y) {
 	m_appliedForceX = x;
 	m_appliedForceY = y;
 }
-double appliedX() const{ return m_appliedForceX; }
-double appliedY() const{ return m_appliedForceY; }
+double Joint::appliedX() const{ return m_appliedForceX; }
+double Joint::appliedY() const{ return m_appliedForceY; }
 
 /* ****************
    Member Class
 **************** */
 
-Member::m_nextId = 0;
+int Member::m_nextId = 0;
 
 Member::Member(Joint* left, Joint* right):
 leftParent(left), 
@@ -36,8 +36,8 @@ force(0)
 }
 
 double Member::length() const {
-  double dy = leftParent.getY() - rightParent.getY();
-  double dx = leftParent.getX() - rightParent.getX();
+  double dy = leftParent->getY() - rightParent->getY();
+  double dx = leftParent->getX() - rightParent->getX();
 
   return sqrt(dx*dx + dy*dy); 
 }

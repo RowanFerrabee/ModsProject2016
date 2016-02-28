@@ -6,7 +6,7 @@ Matrix::Matrix() {
     rows = 0;
     cols = 0;
     elements = NULL;
-    cerr << "DEFAULT CONSTRUCTOR" << endl;
+    //cerr << "DEFAULT CONSTRUCTOR" << endl;
 }
 
 Matrix::Matrix(int r, int c) {
@@ -19,18 +19,18 @@ Matrix::Matrix(int r, int c) {
             elements[i][j] = 0;
         }
     }
-    cerr << "TWO INTS CONSTRUCTOR" << endl;
+    //cerr << "TWO INTS CONSTRUCTOR" << endl;
 }
 
 Matrix::Matrix(const Matrix& matrix) {
     elements = NULL;
     copy(matrix);
-    cerr << "COPY CONSTRUCTOR" << endl;
+    //cerr << "COPY CONSTRUCTOR" << endl;
 }
 
 Matrix::~Matrix() {
     deleteAll();
-    cerr << "BOOM" << endl;
+    //cerr << "BOOM" << endl;
 }
 
 void Matrix::deleteAll() {
@@ -39,14 +39,14 @@ void Matrix::deleteAll() {
     }
     delete[] elements;
     elements = NULL;
-    cerr << "DELETEALL" << endl;
+    //cerr << "DELETEALL" << endl;
 }
 
 Matrix &Matrix::operator=(const Matrix &that) {
     if (this != &that) {
         copy(that);
     }
-    cerr << "ASSIGNMENT OPERATOR" << endl;
+    //cerr << "ASSIGNMENT OPERATOR" << endl;
     return *this;
 }
 
@@ -61,7 +61,7 @@ void Matrix::copy(const Matrix &that) {
             elements[r][c] = that.elements[r][c];
         }
     }
-    cerr << "COPY" << endl;
+    //cerr << "COPY" << endl;
 }
 
 bool Matrix::print(ostream &out) {
@@ -92,7 +92,7 @@ bool Matrix::print(ostream &out) {
 
 void Matrix::setElement(int row, int col, double element) {
     elements[row][col] = element;
-    cerr << "SET ELEMENT" << endl;
+    //cerr << "SET ELEMENT" << endl;
 }
 
 int Matrix::getRows() const{
@@ -110,11 +110,11 @@ Matrix Matrix::operator+(const Matrix& that) const{
         for(int i=0; i<that.rows; i++)
             for(int j=0; j<that.cols; j++)
                 m.elements[i][j] = (*this).elements[i][j] + that.elements[i][j];
-        cerr << "ADDITION" << endl;
+        //cerr << "ADDITION" << endl;
         return m;
     }
     else {
-        cerr << "ADDITION ERROR" << endl;
+        //cerr << "ADDITION ERROR" << endl;
         return Matrix(0,0);
     }
     
@@ -127,11 +127,11 @@ Matrix Matrix::operator-(const Matrix& that) const{
         for(int i=0; i<that.rows; i++)
             for(int j=0; j<that.cols; j++)
                 m.elements[i][j] = (*this).elements[i][j] - that.elements[i][j];
-        cerr << "SUBTRACTION" << endl;
+        //cerr << "SUBTRACTION" << endl;
         return m;
     }
     else {
-        cerr << "SUBTRACTION ERROR" << endl;
+        //cerr << "SUBTRACTION ERROR" << endl;
         return Matrix(0,0);
     }
     
@@ -145,11 +145,11 @@ Matrix Matrix::operator*(const Matrix& that) const{
             for(int j=0; j<that.cols; j++)
                 for(int k=0; k<(*this).cols; k++)
                     m.elements[i][j] += (*this).elements[i][k] * that.elements[k][j];
-        cerr << "MULTIPLICATION" << endl;
+        //cerr << "MULTIPLICATION" << endl;
         return m;
     }
     else {
-        cerr << "MULTIPLICATION ERROR" << endl;
+        //cerr << "MULTIPLICATION ERROR" << endl;
         return Matrix(0,0);
     }
     
@@ -161,7 +161,7 @@ Matrix Matrix::operator*(int a) {
     for(int i=0; i<m.rows; i++)
         for(int j=0; j<m.cols; j++)
             m.elements[i][j] *= a;
-    cerr << "SCALAR MULTIPLICATION" << endl;
+    //cerr << "SCALAR MULTIPLICATION" << endl;
     return m;
     
 }
@@ -176,9 +176,10 @@ Matrix Matrix::transpose() {
 }
 
 double Matrix::det() {    //MOST DISGUSTING THING EVER
-    if(rows!=cols)
-        cerr << "DETERMINANT ERROR" << endl;
-    else if(rows==1)
+    if(rows!=cols) {
+        //cerr << "DETERMINANT ERROR" << endl;
+        return -9999;
+    } else if(rows==1)
         return elements[0][0];
     else if(rows==2)
         return  elements[0][1]*elements[1][0] - elements[0][0]*elements[1][1];
@@ -238,11 +239,11 @@ Matrix Matrix::cof() {
                     m.elements[i][j] = 0-deter.quickDet();
             }
         }
-        cerr << "COFACTOR" << endl;
+        //cerr << "COFACTOR" << endl;
         return m;
     }
     else {
-        cerr << "COFACTOR ERROR" << endl;
+        //cerr << "COFACTOR ERROR" << endl;
         return Matrix(0,0);
     }
 }

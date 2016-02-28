@@ -7,12 +7,13 @@
 
 #include "Truss.h"
 #include "matrix.h"
+#include <cmath>
 
 using namespace std;
 
-void calculateForces(vector<Members*> members, vector<Joint*> joints);
-double calculatePV(vector<Members*> members);
-void followGradient(vector<Members*> members, vector<Joint*> joints);
+void calculateForces(vector<Member*> members, vector<Joint*> joints);
+double calculatePV(vector<Member*> members);
+void followGradient(vector<Member*> members, vector<Joint*> joints);
 
 int main() {
 	vector<Joint*> joints;
@@ -22,9 +23,9 @@ int main() {
 	cout << "Point 0: (0,0.05)" << endl;
 	cout << "Point 1: (0,0.0)" << endl;
 	cout << "Point 2: (0,0.3)" << endl;
-	joints.push(new Joint(0,0.05));
-	joints.push(new Joint(0,0.3));
-	joints.push(new Joint(0,0));
+	joints.push_back(new Joint(0.05,0));
+	joints.push_back(new Joint(0,0.3));
+	joints.push_back(new Joint(0,0));
 
 	joints[0]->setAppliedForce(-6, 1);
 	joints[1]->setAppliedForce(6, 0);
@@ -37,7 +38,8 @@ int main() {
 		cout << "Point " << counter << ": ";
 		cin >> x >> y;
 		if (x > 0) {
-			points.push(x,y);
+			joints.push_back(new Joint(x,y));
+			movableJoints.push_back(new Joint(x,y));
 		}
 		counter++;
 	} while (x > 0);
@@ -46,20 +48,23 @@ int main() {
 	cout << "Insert Pair of joints to draw members" << endl;
 	do {
 		cin >> joint1 >> joint2;
-		if (joint1 > 0 && joint2 > 0 && joint1 < joints.size() && joint2 < joints.size()) {
-			members.push(new Member(joints[joint1], joints[joint2]));
+		if (joint1 >= 0 && joint2 >= 0 && joint1 < joints.size() && joint2 < joints.size()) {
+			Member* newMember = new Member(joints[joint1], joints[joint2]);
+			members.push_back(newMember);
+			joints[joint1]->members.push_back(newMember);
+			joints[joint2]->members.push_back(newMember);
 		}
-	} while (joint1 > 0 && joint2 > 0);
+	} while (joint1 >= 0 && joint2 >= 0);
 
 	calculateForces(members, joints);
 
 	for (int i=0; i<members.size(); i++) {
-		cout << "Member " << members[i]->id() << " has force: " << members[i].force << endl;
+		cout << "Member " << members[i]->id() << " has force: " << members[i]->force << endl;
 	}
 
 }
 
-void calculateForces(vector<Members*> members, vector<Joint*> joints) {
+void calculateForces(vector<Member*> members, vector<Joint*> joints) {
 	Matrix forceMatrix(joints.size() * 2, members.size() + 1);
 	//Be sure that the members vector is sorted by id
 
@@ -68,27 +73,34 @@ void calculateForces(vector<Members*> members, vector<Joint*> joints) {
 		return;
 	}
 
-	Matrix forceMatrix(joints.size() * 2, members.size() + 1);
 	for (int i=0; i<joints.size(); i++) {
 		Joint* curJoint = joints.at(i);
+		cout << "Joint " << i << ": (" << curJoint->getX() << "," << curJoint->getY() << ")" << endl;
+		cout << curJoint->numMembers() << endl;
 
-		for (int j=0; j<curJoint->numMembers; j++) {
-			Joint* otherJoint = curJoint->members[j].leftJoint() == this ? members[j].rightJoint() : members[j].leftjoint();
-			double angle = atan2(otherJoint.getY() - curJoint.getY(), otherJoint.getX() - curJoint.getX());
-			forceMatrix.setElement(2*i, curJoint->member[j].id(), cos(angle));
-			forceMatrix.setElement(2*i+1, curJoint->member[j].id(), sin(angle));
+		for (int j=0; j<curJoint->numMembers(); j++) {
+			Joint* otherJoint = curJoint->members[j]->leftJoint() == curJoint ? members[j]->rightJoint() : members[j]->leftJoint();
+			for (int k=0; k<joints.size(); k++) {
+				if (otherJoint == joints[k])
+					cout << "OtherJoint " << k << ": (" << otherJoint->getX() << "," << otherJoint->getY() << ")" << endl;
+			}
+			double angle = atan2(otherJoint->getY() - curJoint->getY(), otherJoint->getX() - curJoint->getX());
+			cout << angle << endl;
+			forceMatrix.setElement(2*i, curJoint->members[j]->id(), cos(angle));
+			forceMatrix.setElement(2*i+1, curJoint->members[j]->id(), sin(angle));
 		}
-		forceMatrix.setElement(2*i, member.size(), -1 * curJoint->appliedX);
-		forceMatrix.setElement(2*i+1, member.size(), -1 * curJoint->appliedY);
+		forceMatrix.setElement(2*i, members.size(), -1 * curJoint->appliedX());
+		forceMatrix.setElement(2*i+1, members.size(), -1 * curJoint->appliedY());
 	}
-
+	forceMatrix.print(cout);
 	forceMatrix = forceMatrix.rref();
+	forceMatrix.print(cout);
 	for (int i=0; i<members.size(); i++) {
 		members.at(i)->force = forceMatrix.getElement(i, members.size());
 	}
 }
 
-double calculatePV(vector<Members*> members) {
+double calculatePV(vector<Member*> members) {
 	double sum = 0;
 	double kt = 14.4863;
 	double kc = 2 * kt;
@@ -101,7 +113,7 @@ double calculatePV(vector<Members*> members) {
 	return sum;
 }
 
-void followGradient(vector<Members*> members, vector<Joint*> joints) {
+void followGradient(vector<Member*> members, vector<Joint*> joints) {
 	double joint_increment = 0.003;	//Make this like 3mm
 	double ascent_rate = 0.1;		//THIS NEEDS SERIOUS TINKERING
 	double exit_rate = 0.5;
@@ -113,23 +125,23 @@ void followGradient(vector<Members*> members, vector<Joint*> joints) {
 
 	do {
 		for (int i=0; i<joints.size(); i++) {	//Only works if members have joint references
-			joints.at(i).setX(joints.at(i).getX() + joint_increment);
+			joints.at(i)->setX(joints.at(i)->getX() + joint_increment);
 			dPV_x[i] = calculatePV(members) - PV;
-			joints.at(i).setX(joints.at(i).getX() - joint_increment);
+			joints.at(i)->setX(joints.at(i)->getX() - joint_increment);
 
-			if (i==0) max_dPV = dPV_x[i]
+			if (i==0) max_dPV = dPV_x[i];
 
-			joints.at(i).setY(joints.at(i).getY() + joint_increment);
+			joints.at(i)->setY(joints.at(i)->getY() + joint_increment);
 			dPV_y[i] = calculatePV(members) - PV;
-			joints.at(i).setY(joints.at(i).getY() - joint_increment);
+			joints.at(i)->setY(joints.at(i)->getY() - joint_increment);
 
 			if (dPV_x[i] > max_dPV) max_dPV = dPV_x[i];
 			if (dPV_y[i] > max_dPV) max_dPV = dPV_y[i];
 		}
 
 		for (int i=0; i<joints.size(); i++) {	//Descend the gradient
-			joints.at(i).x -= ascent_rate * dPV_x[i];
-			joints.at(i).y -= ascent_rate * dPV_y[i];
+			joints.at(i)->setX(joints.at(i)->getX() - ascent_rate * dPV_x[i]);
+			joints.at(i)->setY(joints.at(i)->getY() - ascent_rate * dPV_y[i]);
 		}
 	} while(max_dPV > exit_rate);
 }
