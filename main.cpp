@@ -3,11 +3,14 @@
 	Initial test: calculate forces in members per unit P and see if correct
 	Secondary test: output required widths and see if correct
 	Run thru gradient descent and watch PV as is goes so we dont waste time on bad descent constants
-
-	
 */
 
+#include "Truss.h"
+#include "matrix.h"
 
+void calculateForces(vector<Members*> members, vector<Joint*> joints);
+double calculatePV(vector<Members*> members);
+void followGradient(vector<Members*> members, vector<Joint*> joints);
 
 int main() {
 	vector<Joint*> joints;
@@ -21,11 +24,15 @@ int main() {
 	joints.push(new Joint(0,0.3));
 	joints.push(new Joint(0,0));
 
+	joints[0]->setAppliedForce(-6, 1);
+	joints[1]->setAppliedForce(6, 0);
+	joints[2]->setAppliedForce(0, -1);
+
 	double x, y;
 	int counter = 3;
 	cout << "Insert Points Now" << endl;
 	do {
-		cout << "Point " << couter << ": ";
+		cout << "Point " << counter << ": ";
 		cin >> x >> y;
 		if (x > 0) {
 			points.push(x,y);
@@ -52,6 +59,7 @@ int main() {
 
 void calculateForces(vector<Members*> members, vector<Joint*> joints) {
 	Matrix forceMatrix(joints.size() * 2, members.size() + 1);
+	//By sure that the members vector is sorted by id
 
 	for (int i=0; i<joints.size(); i++) {
 		Joint* curJoint = joints.at(i);
@@ -62,8 +70,8 @@ void calculateForces(vector<Members*> members, vector<Joint*> joints) {
 			forceMatrix.setElement(2*i, curJoint->member[j].id(), cos(angle));
 			forceMatrix.setElement(2*i+1, curJoint->member[j].id(), sin(angle));
 		}
-		forceMatrix.setElement(2*i, member.size(), curJoint->appliedX);
-		forceMatrix.setElement(2*i+1, member.size(), curJoint->appliedY);
+		forceMatrix.setElement(2*i, member.size(), -1 * curJoint->appliedX);
+		forceMatrix.setElement(2*i+1, member.size(), -1 * curJoint->appliedY);
 	}
 
 	forceMatrix = forceMatrix.rref();
