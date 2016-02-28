@@ -8,6 +8,8 @@
 #include "Truss.h"
 #include "matrix.h"
 
+using namespace std;
+
 void calculateForces(vector<Members*> members, vector<Joint*> joints);
 double calculatePV(vector<Members*> members);
 void followGradient(vector<Members*> members, vector<Joint*> joints);
