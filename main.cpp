@@ -16,39 +16,45 @@ void populateForces(vector<Member*> members, vector<Joint*> joints);
 double calculatePV(vector<Member*> members, vector<Joint*> joints);
 void followGradient(vector<Member*> members, vector<Joint*> movableJoints, vector<Joint*> allJoints);
 
-void populateTrussComponentsFromFile(string fileName, 
+void populateTrussFromFile(string fileName, 
 	vector<Joint*>& jointList,
 	vector<Joint*>& moveableJointList, 
 	vector<Member*>& members) {
 
-	joints.push_back(new Joint(0,0.05));
-	joints.push_back(new Joint(0,0));
-	joints.push_back(new Joint(0.3,0));
+	jointList.push_back(new Joint(0,0.05));
+	jointList.push_back(new Joint(0,0));
+	jointList.push_back(new Joint(0.3,0));
 
-	joints[0]->setAppliedForce(-6, 1);
-	joints[1]->setAppliedForce(6, 0);
-	joints[2]->setAppliedForce(0, -1);
+	jointList[0]->setAppliedForce(-6, 1);
+	jointList[1]->setAppliedForce(6, 0);
+	jointList[2]->setAppliedForce(0, -1);
 
 	ifstream fin(fileName.c_str());
 
-	int n, x, y; 
+	int n;
+	double x, y; 
 	fin >> n; //here, n equals number of joints
+	cout << "Number of joints: " << n <<  endl;
 	for(int i = 0; i < n; i++) {
 		fin >> x >> y; //here (x, y) is a coordinate
 		Joint* j = new Joint(x, y);
-		joints.push_back(j);
-		movableJoints.push_back(j);
+		jointList.push_back(j);
+		moveableJointList.push_back(j);
 	}
+	int l, r;
 	fin >> n; // here, n equals number of members
-	for(int i = 0; i < n; n++) {
-		fin >> x >> y; //here x and y are joint indexes
-		if (x >= 0 && y >= 0 && x < joints.size() && y < joints.size()) {
-			Member* newMember = new Member(joints[x], joints[y]);
+	cout << "Number of members: " << n << endl;
+	for(int i = 0; i < n; i++) {
+		fin >> l >> r; //here l and r are joint indexes
+		cout << l << " " << r << endl;
+		if (l >= 0 && r >= 0 && l < jointList.size() && r < jointList.size()) {
+			Member* newMember = new Member(jointList[l], jointList[r]);
 			members.push_back(newMember);
-			joints[x]->members.push_back(newMember);
-			joints[y]->members.push_back(newMember);
+			jointList[l]->members.push_back(newMember);
+			jointList[r]->members.push_back(newMember);
 		}
 	}
+	cout << "Finished inputing member" << endl;
 	fin.close();
 }
 
@@ -59,20 +65,20 @@ vector<Member*> memberList) {
 	ofstream fout(fileName.c_str());
 	fout << jointList.size() - 3 << "\n";
 	for(int i = 3; i < jointList.size(); i++) {
-		fout << jointList[i].getX() << " " 
-		<< jointList.getY() << "\n";
+		fout << jointList[i]->getX() << " " 
+		     << jointList[i]->getY() << "\n";
 	}
 
 	fout << "\n" << memberList.size() << "\n";
 	int indexL, indexR;
 	for(int i = 0; i < memberList.size(); i++) {
 		indexL = 0;
-		while(indexL < jointList.size() && jointList[indexL] != memberList[i].leftJoint) 
+		while(indexL < jointList.size() && jointList[indexL] != memberList[i]->leftJoint()) 
 			indexL++;
 
 		indexR = 0;
-		while(indexR < jointList.size() && jointList[indexR] != memberList[i].rightJoint)
-			indexR++
+		while(indexR < jointList.size() && jointList[indexR] != memberList[i]->rightJoint())
+			indexR++;
 
 		fout << indexL << " " << indexR << "\n";
 	}
@@ -84,43 +90,9 @@ int main() {
 	vector<Joint*> movableJoints;
 	vector<Member*> members;
 
-	cout << "Point 0: (0,0.05)" << endl;
-	cout << "Point 1: (0,0.0)" << endl;
-	cout << "Point 2: (0.3,0)" << endl;
-	joints.push_back(new Joint(0,0.05));
-	joints.push_back(new Joint(0,0));
-	joints.push_back(new Joint(0.3,0));
+	populateTrussFromFile("truss_components.txt", joints, movableJoints, members);
 
 
-	joints[0]->setAppliedForce(-6, 1);
-	joints[1]->setAppliedForce(6, 0);
-	joints[2]->setAppliedForce(0, -1);
-
-	double x, y;
-	int counter = 3;
-	cout << "Insert Points Now" << endl;
-	do {
-		cout << "Point " << counter << ": ";
-		cin >> x >> y;
-		if (x > 0) {
-			Joint* newJoint = new Joint(x,y);
-			joints.push_back(newJoint);
-			movableJoints.push_back(newJoint);
-		}
-		counter++;
-	} while (x > 0);
-
-	int joint1, joint2;
-	cout << "Insert Pair of joints to draw members" << endl;
-	do {
-		cin >> joint1 >> joint2;
-		if (joint1 >= 0 && joint2 >= 0 && joint1 < joints.size() && joint2 < joints.size()) {
-			Member* newMember = new Member(joints[joint1], joints[joint2]);
-			members.push_back(newMember);
-			joints[joint1]->members.push_back(newMember);
-			joints[joint2]->members.push_back(newMember);
-		}
-	} while (joint1 >= 0 && joint2 >= 0);
 
 	populateForces(members, joints);
 
@@ -154,10 +126,11 @@ void populateForces(vector<Member*> memberList, vector<Joint*> joints) {
 		//cout << "Joint " << i << ": (" << curJoint->getX() << "," << curJoint->getY() << ")" << endl;
 		//cout << "Has " << curJoint->numMembers() << " members" << endl;
 		//cout << "Those members are: ";
-		for (int i=0; i<curJoint->numMembers(); i++) {
-			//cout << curJoint->members[i]->id() << " ";
+		/*
+		for (int a=0; a<curJoint->numMembers(); a++) {
+			//cout << curJoint->members[a]->id() << " ";
 		} //cout << endl;
-
+		*/
 		for (int j=0; j<curJoint->numMembers(); j++) {
 			Joint* otherJoint = curJoint->members[j]->leftJoint() == curJoint ? curJoint->members[j]->rightJoint() : curJoint->members[j]->leftJoint();
 			for (int k=0; k<joints.size(); k++) {
