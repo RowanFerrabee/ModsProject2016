@@ -90,9 +90,12 @@ int main() {
 	vector<Joint*> movableJoints;
 	vector<Member*> members;
 
-	populateTrussFromFile("truss_components.txt", joints, movableJoints, members);
-
-
+	string fileName;
+	cout << "Input file name: ";
+	cin >> fileName;
+	populateTrussFromFile(fileName, joints, movableJoints, members);
+	cout << "Output file name: ";
+	cin >> fileName;
 
 	populateForces(members, joints);
 
@@ -108,8 +111,10 @@ int main() {
 	cout << "with points: ";
 	for (int i=0; i<movableJoints.size(); i++) {
 		cout << "(" << movableJoints[i]->getX() << "," << movableJoints[i]->getY() << ") ";
-	}cout << endl;
+	}
+	cout << endl;
 
+	trussToFile(fileName, joints, members);
 }
 
 void populateForces(vector<Member*> memberList, vector<Joint*> joints) {
