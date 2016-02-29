@@ -12,9 +12,9 @@
 
 using namespace std;
 
-void calculateForces(vector<Member*> members, vector<Joint*> joints);
-double calculatePV(vector<Member*> members);
-void followGradient(vector<Member*> members, vector<Joint*> joints);
+void populateForces(vector<Member*> members, vector<Joint*> joints);
+double calculatePV(vector<Member*> members, vector<Joint*> joints);
+void followGradient(vector<Member*> members, vector<Joint*> movableJoints, vector<Joint*> allJoints);
 
 void populateTrussComponentsFromFile(string fileName, 
 	vector<Joint*>& jointList,
@@ -103,8 +103,9 @@ int main() {
 		cout << "Point " << counter << ": ";
 		cin >> x >> y;
 		if (x > 0) {
-            joints.push_back(new Joint(x, y));
-            movableJoints.push_back(new Joint(x, y));
+			Joint* newJoint = new Joint(x,y);
+			joints.push_back(newJoint);
+			movableJoints.push_back(newJoint);
 		}
 		counter++;
 	} while (x > 0);
@@ -121,17 +122,25 @@ int main() {
 		}
 	} while (joint1 >= 0 && joint2 >= 0);
 
-	calculateForces(members, joints);
+	populateForces(members, joints);
 
 	for (int i=0; i<members.size(); i++) {
 		cout << "Member " << members[i]->id() << " has force: " << members[i]->force << endl;
 	}
 
-	cout << "The PV of this bridge is: " << calculatePV(members) << endl;
+	cout << "The PV of this bridge is: " << calculatePV(members, joints) << endl;
+
+	followGradient(members, movableJoints, joints);
+
+	cout << "The Optimized PV of this bridge is: " << calculatePV(members, joints) << endl;
+	cout << "with points: ";
+	for (int i=0; i<movableJoints.size(); i++) {
+		cout << "(" << movableJoints[i]->getX() << "," << movableJoints[i]->getY() << ") ";
+	}cout << endl;
 
 }
 
-void calculateForces(vector<Member*> memberList, vector<Joint*> joints) {
+void populateForces(vector<Member*> memberList, vector<Joint*> joints) {
 	Matrix forceMatrix(joints.size() * 2, memberList.size() + 1);
 	//Be sure that the members vector is sorted by id
 
@@ -146,8 +155,8 @@ void calculateForces(vector<Member*> memberList, vector<Joint*> joints) {
 		//cout << "Has " << curJoint->numMembers() << " members" << endl;
 		//cout << "Those members are: ";
 		for (int i=0; i<curJoint->numMembers(); i++) {
-			cout << curJoint->members[i]->id() << " ";
-		} cout << endl;
+			//cout << curJoint->members[i]->id() << " ";
+		} //cout << endl;
 
 		for (int j=0; j<curJoint->numMembers(); j++) {
 			Joint* otherJoint = curJoint->members[j]->leftJoint() == curJoint ? curJoint->members[j]->rightJoint() : curJoint->members[j]->leftJoint();
@@ -172,48 +181,53 @@ void calculateForces(vector<Member*> memberList, vector<Joint*> joints) {
 	}
 }
 
-double calculatePV(vector<Member*> members) {
+double calculatePV(vector<Member*> memberList, vector<Joint*> joints) {
 	double sum = 0;
 	double kt = 14.4863;
 	double kc = -1 * 2 * kt;
 
-	for (int i=0; i<members.size(); i++) {
-		double k = members.at(i)->force < 0 ? kc : kt;
-		sum += k * members.at(i)->force * members.at(i)->length();
+	populateForces(memberList, joints);
+
+	for (int i=0; i<memberList.size(); i++) {
+		double k = memberList.at(i)->force < 0 ? kc : kt;
+		sum += k * memberList.at(i)->force * memberList.at(i)->length();
 	}
 	
 	return sum;
 }
 
-void followGradient(vector<Member*> members, vector<Joint*> joints) {
+void followGradient(vector<Member*> members, vector<Joint*> movableJoints, vector<Joint*> allJoints) {
 	double joint_increment = 0.003;	//Make this like 3mm
-	double ascent_rate = 0.1;		//THIS NEEDS SERIOUS TINKERING
-	double exit_rate = 0.5;
+	double ascent_rate = 0.2;		//THIS NEEDS SERIOUS TINKERING
+	double exit_rate = 0.1;
 
-	double PV = calculatePV(members);
-	double *dPV_x = new double [joints.size()];
-	double *dPV_y = new double [joints.size()];
+	double PV;
+	double *dPV_by_dx = new double [movableJoints.size()];
+	double *dPV_y = new double [movableJoints.size()];
 	double max_dPV;
 
 	do {
-		for (int i=0; i<joints.size(); i++) {	//Only works if members have joint references
-			joints.at(i)->setX(joints.at(i)->getX() + joint_increment);
-			dPV_x[i] = calculatePV(members) - PV;
-			joints.at(i)->setX(joints.at(i)->getX() - joint_increment);
+		PV = calculatePV(members, allJoints);
+		for (int i=0; i<movableJoints.size(); i++) {	//Only works if members have joint references
+			movableJoints.at(i)->setX(movableJoints.at(i)->getX() + joint_increment);
+			dPV_by_dx[i] = calculatePV(members, allJoints) - PV;
+			movableJoints.at(i)->setX(movableJoints.at(i)->getX() - joint_increment);
 
-			if (i==0) max_dPV = dPV_x[i];
+			if (i==0) max_dPV = dPV_by_dx[i];
 
-			joints.at(i)->setY(joints.at(i)->getY() + joint_increment);
-			dPV_y[i] = calculatePV(members) - PV;
-			joints.at(i)->setY(joints.at(i)->getY() - joint_increment);
-
-			if (dPV_x[i] > max_dPV) max_dPV = dPV_x[i];
+			movableJoints.at(i)->setY(movableJoints.at(i)->getY() + joint_increment);
+			dPV_y[i] = calculatePV(members, allJoints) - PV;
+			movableJoints.at(i)->setY(movableJoints.at(i)->getY() - joint_increment);
+			cout << "dPV " << dPV_by_dx[i] << endl;
+			cout << "dPV " << dPV_y[i] << endl;
+			if (dPV_by_dx[i] > max_dPV) max_dPV = dPV_by_dx[i];
 			if (dPV_y[i] > max_dPV) max_dPV = dPV_y[i];
 		}
 
-		for (int i=0; i<joints.size(); i++) {	//Descend the gradient
-			joints.at(i)->setX(joints.at(i)->getX() - ascent_rate * dPV_x[i]);
-			joints.at(i)->setY(joints.at(i)->getY() - ascent_rate * dPV_y[i]);
+		for (int i=0; i<movableJoints.size(); i++) {	//Descend the gradient
+			movableJoints.at(i)->setX(movableJoints.at(i)->getX() - ascent_rate * dPV_by_dx[i]);
+			movableJoints.at(i)->setY(movableJoints.at(i)->getY() - ascent_rate * dPV_y[i]);
 		}
+		cout << "Max dPV " << max_dPV << endl;
 	} while(max_dPV > exit_rate);
 }
