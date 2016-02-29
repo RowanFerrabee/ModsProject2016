@@ -13,7 +13,7 @@
 using namespace std;
 
 void populateForces(vector<Member*> members, vector<Joint*> joints);
-double calculatePV(vector<Member*> members, vector<Joint*> joints);
+double calculateMass(vector<Member*> members, vector<Joint*> joints);
 void followGradient(vector<Member*> members, vector<Joint*> movableJoints, vector<Joint*> allJoints);
 
 void populateTrussFromFile(string fileName, 
@@ -103,11 +103,11 @@ int main() {
 		cout << "Member " << members[i]->id() << " has force: " << members[i]->force << endl;
 	}
 
-	cout << "The PV of this bridge is: " << calculatePV(members, joints) << endl;
+	cout << "The Mass of this bridge is: " << calculateMass(members, joints) << endl;
 
 	followGradient(members, movableJoints, joints);
 
-	cout << "The Optimized PV of this bridge is: " << calculatePV(members, joints) << endl;
+	cout << "The Optimized Mass of this bridge is: " << calculateMass(members, joints) << endl;
 	cout << "with points: ";
 	for (int i=0; i<movableJoints.size(); i++) {
 		cout << "(" << movableJoints[i]->getX() << "," << movableJoints[i]->getY() << ") ";
@@ -159,7 +159,7 @@ void populateForces(vector<Member*> memberList, vector<Joint*> joints) {
 	}
 }
 
-double calculatePV(vector<Member*> memberList, vector<Joint*> joints) {
+double calculateMass(vector<Member*> memberList, vector<Joint*> joints) {
 	double sum = 0;
 	double kt = 14.4863;
 	double kc = -1 * 2 * kt;
@@ -176,36 +176,36 @@ double calculatePV(vector<Member*> memberList, vector<Joint*> joints) {
 
 void followGradient(vector<Member*> members, vector<Joint*> movableJoints, vector<Joint*> allJoints) {
 	double joint_increment = 0.003;	//Make this like 3mm
-	double ascent_rate = 0.2;		//THIS NEEDS SERIOUS TINKERING
+	double ascent_rate = 0.002;		//THIS NEEDS SERIOUS TINKERING
 	double exit_rate = 0.1;
 
-	double PV;
-	double *dPV_by_dx = new double [movableJoints.size()];
-	double *dPV_y = new double [movableJoints.size()];
-	double max_dPV;
+	double mass;
+	double *dMass_by_dx = new double [movableJoints.size()];
+	double *dMass_by_dy = new double [movableJoints.size()];
+	double max_dMass;
 
 	do {
-		PV = calculatePV(members, allJoints);
+		mass = calculateMass(members, allJoints);
 		for (int i=0; i<movableJoints.size(); i++) {	//Only works if members have joint references
 			movableJoints.at(i)->setX(movableJoints.at(i)->getX() + joint_increment);
-			dPV_by_dx[i] = calculatePV(members, allJoints) - PV;
+			dMass_by_dx[i] = calculateMass(members, allJoints) - mass;
 			movableJoints.at(i)->setX(movableJoints.at(i)->getX() - joint_increment);
 
-			if (i==0) max_dPV = dPV_by_dx[i];
+			if (i==0) max_dMass = dMass_by_dx[i];
 
 			movableJoints.at(i)->setY(movableJoints.at(i)->getY() + joint_increment);
-			dPV_y[i] = calculatePV(members, allJoints) - PV;
+			dMass_by_dy[i] = calculateMass(members, allJoints) - mass;
 			movableJoints.at(i)->setY(movableJoints.at(i)->getY() - joint_increment);
-			cout << "dPV " << dPV_by_dx[i] << endl;
-			cout << "dPV " << dPV_y[i] << endl;
-			if (dPV_by_dx[i] > max_dPV) max_dPV = dPV_by_dx[i];
-			if (dPV_y[i] > max_dPV) max_dPV = dPV_y[i];
+			cout << "dMass_by_dx " << dMass_by_dx[i] << endl;
+			cout << "dMass_by_dy " << dMass_by_dy[i] << endl;
+			if (dMass_by_dx[i] > max_dMass) max_dMass = dMass_by_dx[i];
+			if (dMass_by_dy[i] > max_dMass) max_dMass = dMass_by_dy[i];
 		}
 
 		for (int i=0; i<movableJoints.size(); i++) {	//Descend the gradient
-			movableJoints.at(i)->setX(movableJoints.at(i)->getX() - ascent_rate * dPV_by_dx[i]);
-			movableJoints.at(i)->setY(movableJoints.at(i)->getY() - ascent_rate * dPV_y[i]);
+			movableJoints.at(i)->setX(movableJoints.at(i)->getX() - ascent_rate * dMass_by_dx[i]);
+			movableJoints.at(i)->setY(movableJoints.at(i)->getY() - ascent_rate * dMass_by_dy[i]);
 		}
-		cout << "Max dPV " << max_dPV << endl;
-	} while(max_dPV > exit_rate);
+		cout << "Max dMass " << max_dMass << endl;
+	} while(max_dMass > exit_rate);
 }
