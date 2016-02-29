@@ -8,12 +8,76 @@
 #include "Truss.h"
 #include "matrix.h"
 #include <cmath>
+#include <fstream>
 
 using namespace std;
 
 void calculateForces(vector<Member*> members, vector<Joint*> joints);
 double calculatePV(vector<Member*> members);
 void followGradient(vector<Member*> members, vector<Joint*> joints);
+
+void populateTrussComponentsFromFile(string fileName, 
+	vector<Joint*>& jointList,
+	vector<Joint*>& moveableJointList, 
+	vector<Member*>& members) {
+
+	joints.push_back(new Joint(0,0.05));
+	joints.push_back(new Joint(0,0));
+	joints.push_back(new Joint(0.3,0));
+
+	joints[0]->setAppliedForce(-6, 1);
+	joints[1]->setAppliedForce(6, 0);
+	joints[2]->setAppliedForce(0, -1);
+
+	ifstream fin(fileName.c_str());
+
+	int n, x, y; 
+	fin >> n; //here, n equals number of joints
+	for(int i = 0; i < n; i++) {
+		fin >> x >> y; //here (x, y) is a coordinate
+		Joint* j = new Joint(x, y);
+		joints.push_back(j);
+		movableJoints.push_back(j);
+	}
+	fin >> n; // here, n equals number of members
+	for(int i = 0; i < n; n++) {
+		fin >> x >> y; //here x and y are joint indexes
+		if (x >= 0 && y >= 0 && x < joints.size() && y < joints.size()) {
+			Member* newMember = new Member(joints[x], joints[y]);
+			members.push_back(newMember);
+			joints[x]->members.push_back(newMember);
+			joints[y]->members.push_back(newMember);
+		}
+	}
+	fin.close();
+}
+
+void trussToFile(string fileName, 
+vector<Joint*> jointList,
+vector<Member*> memberList) {
+
+	ofstream fout(fileName.c_str());
+	fout << jointList.size() - 3 << "\n";
+	for(int i = 3; i < jointList.size(); i++) {
+		fout << jointList[i].getX() << " " 
+		<< jointList.getY() << "\n";
+	}
+
+	fout << "\n" << memberList.size() << "\n";
+	int indexL, indexR;
+	for(int i = 0; i < memberList.size(); i++) {
+		indexL = 0;
+		while(indexL < jointList.size() && jointList[indexL] != memberList[i].leftJoint) 
+			indexL++;
+
+		indexR = 0;
+		while(indexR < jointList.size() && jointList[indexR] != memberList[i].rightJoint)
+			indexR++
+
+		fout << indexL << " " << indexR << "\n";
+	}
+	fout.close();
+}
 
 int main() {
 	vector<Joint*> joints;
@@ -39,8 +103,8 @@ int main() {
 		cout << "Point " << counter << ": ";
 		cin >> x >> y;
 		if (x > 0) {
-			joints.push_back(new Joint(x,y));
-			movableJoints.push_back(new Joint(x,y));
+            joints.push_back(new Joint(x, y));
+            movableJoints.push_back(new Joint(x, y));
 		}
 		counter++;
 	} while (x > 0);
