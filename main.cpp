@@ -22,10 +22,11 @@ int main() {
 
 	cout << "Point 0: (0,0.05)" << endl;
 	cout << "Point 1: (0,0.0)" << endl;
-	cout << "Point 2: (0,0.3)" << endl;
-	joints.push_back(new Joint(0.05,0));
-	joints.push_back(new Joint(0,0.3));
+	cout << "Point 2: (0.3,0)" << endl;
+	joints.push_back(new Joint(0,0.05));
 	joints.push_back(new Joint(0,0));
+	joints.push_back(new Joint(0.3,0));
+
 
 	joints[0]->setAppliedForce(-6, 1);
 	joints[1]->setAppliedForce(6, 0);
@@ -62,48 +63,55 @@ int main() {
 		cout << "Member " << members[i]->id() << " has force: " << members[i]->force << endl;
 	}
 
+	cout << "The PV of this bridge is: " << calculatePV(members) << endl;
+
 }
 
-void calculateForces(vector<Member*> members, vector<Joint*> joints) {
-	Matrix forceMatrix(joints.size() * 2, members.size() + 1);
+void calculateForces(vector<Member*> memberList, vector<Joint*> joints) {
+	Matrix forceMatrix(joints.size() * 2, memberList.size() + 1);
 	//Be sure that the members vector is sorted by id
 
-	if(joints.size()*2 < members.size() + 1) {
-		cout << "Bridge makes no sense, force calculations make no sense." << std::endl;
+	if(joints.size()*2 < memberList.size() + 1) {
+		cout << "Bridge makes no sense, force calculations make no sense." << endl;
 		return;
 	}
 
 	for (int i=0; i<joints.size(); i++) {
 		Joint* curJoint = joints.at(i);
-		cout << "Joint " << i << ": (" << curJoint->getX() << "," << curJoint->getY() << ")" << endl;
-		cout << curJoint->numMembers() << endl;
+		//cout << "Joint " << i << ": (" << curJoint->getX() << "," << curJoint->getY() << ")" << endl;
+		//cout << "Has " << curJoint->numMembers() << " members" << endl;
+		//cout << "Those members are: ";
+		for (int i=0; i<curJoint->numMembers(); i++) {
+			cout << curJoint->members[i]->id() << " ";
+		} cout << endl;
 
 		for (int j=0; j<curJoint->numMembers(); j++) {
-			Joint* otherJoint = curJoint->members[j]->leftJoint() == curJoint ? members[j]->rightJoint() : members[j]->leftJoint();
+			Joint* otherJoint = curJoint->members[j]->leftJoint() == curJoint ? curJoint->members[j]->rightJoint() : curJoint->members[j]->leftJoint();
 			for (int k=0; k<joints.size(); k++) {
-				if (otherJoint == joints[k])
-					cout << "OtherJoint " << k << ": (" << otherJoint->getX() << "," << otherJoint->getY() << ")" << endl;
+				//if (otherJoint == joints[k])
+					//cout << "OtherJoint " << k << ": (" << otherJoint->getX() << "," << otherJoint->getY() << ")" << endl;
 			}
 			double angle = atan2(otherJoint->getY() - curJoint->getY(), otherJoint->getX() - curJoint->getX());
-			cout << angle << endl;
+			//cout << angle << endl;
 			forceMatrix.setElement(2*i, curJoint->members[j]->id(), cos(angle));
 			forceMatrix.setElement(2*i+1, curJoint->members[j]->id(), sin(angle));
+			//forceMatrix.print(cout);
 		}
-		forceMatrix.setElement(2*i, members.size(), -1 * curJoint->appliedX());
-		forceMatrix.setElement(2*i+1, members.size(), -1 * curJoint->appliedY());
+		forceMatrix.setElement(2*i, memberList.size(), -1 * curJoint->appliedX());
+		forceMatrix.setElement(2*i+1, memberList.size(), -1 * curJoint->appliedY());
 	}
-	forceMatrix.print(cout);
+	//forceMatrix.print(cout);
 	forceMatrix = forceMatrix.rref();
-	forceMatrix.print(cout);
-	for (int i=0; i<members.size(); i++) {
-		members.at(i)->force = forceMatrix.getElement(i, members.size());
+	//forceMatrix.print(cout);
+	for (int i=0; i<memberList.size(); i++) {
+		memberList.at(i)->force = forceMatrix.getElement(i, memberList.size());
 	}
 }
 
 double calculatePV(vector<Member*> members) {
 	double sum = 0;
 	double kt = 14.4863;
-	double kc = 2 * kt;
+	double kc = -1 * 2 * kt;
 
 	for (int i=0; i<members.size(); i++) {
 		double k = members.at(i)->force < 0 ? kc : kt;

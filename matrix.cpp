@@ -254,6 +254,7 @@ Matrix Matrix::rref(){
     int pivotRow = 0;
     
     while (pivotCol <= cols){
+        //m.print(cout);
         m.pivot(pivotRow,pivotCol);
         pivotCol++;
     }
@@ -264,7 +265,7 @@ Matrix Matrix::rref(){
 void Matrix::pivot(int &pivotRow, int pivotCol) {
     int firstNonZero = -1;
     for (int i=pivotRow; i<rows; i++) {
-        if (elements[i][pivotCol] != 0)
+        if (elements[i][pivotCol] > 0.0001)
             firstNonZero = i;
     }
     if (firstNonZero == -1)
